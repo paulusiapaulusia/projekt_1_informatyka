@@ -188,11 +188,11 @@ with open(input_file_path, 'w') as f:
         
 #2 tygodnie---13 maj--ma pobierac dane tylko z pliku
 if '--plh2zyx' in sys.args:      
-def plh2xyz(self, phi, lam, h):     
-    Rm= self.a / sqrt(1 - self.acc) * sin(phi)**2
-    x= (Rm +h)*cos(phi) *cos(lam)
-    y= (Rm +h) *cos(phi) *sin(lam)
-    z= (Rm +h) * sin(pho) - q
+    def plh2xyz(self, phi, lam, h):     
+        Rm= self.a / sqrt(1 - self.acc) * sin(phi)**2
+        x= (Rm +h)*cos(phi) *cos(lam)
+        y= (Rm +h) *cos(phi) *sin(lam)
+        z= (Rm +h) * sin(pho) - q
     
         # XYZ ---> BLH - ALGORYTM HIRVONENA
         """
