@@ -2,6 +2,7 @@ from math import sin, cos, sqrt, atan, atan2, degrees, radians
 import sys
 o = object()
 print(sys.arg)
+import numpy as np
 
     
 
@@ -76,6 +77,7 @@ class Transformacje:
         else:
             raise NotImplementedError(f"{output} - output format not defined")
             
+
 #kras-->grs80--->2000/92
 with open('przykład/result_xyz2plh.txt', 'w') as f:
     f.write(',')
@@ -168,13 +170,19 @@ if __name__ == "__main__":
         args = parser.parse_args()
     except SyntaxError:
         print(f"Niestety nie ma takiego pliku. Spróbuj podać pełną scieżkę do pliku lub upewnij się że wpisujesz dobrą nazwę")
-        
+
+
+
+coords_plh= []        
+
 with open('przyklad/wsp_inp.txt') as f:
     lines = f.readlines()
     coords_lines = lines[4:]
     for coords_lines in coords_lines:
         coords_lines= coords_lines('\n')
+
         x_str, y_str, z_str= coord_line.split(',')
+        x_str, y_str, z_str= coords_lines.split(',')
         x, y, z= (float( x_str),float( y_str), float(z_str))
         phi, lam, h = geo.xyzwplh(x,y,z)
         coords_plh.append([phi,lam,h])
@@ -186,6 +194,7 @@ with open(input_file_path, 'w') as f:
         line= ','.join([str(coord) for coord in coords_list])
         f.writelines(line + '\n')
         
+#kras-->grs80--->2000/92
 #2 tygodnie---13 maj--ma pobierac dane tylko z pliku
 if '--plh2zyx' in sys.args:      
     def plh2xyz(self, phi, lam, h):     
@@ -198,7 +207,23 @@ if '--plh2zyx' in sys.args:
         """
             Następujący algorytm przelicza współrzędne z układu ortokartezjańskiego na współrzędne geodezyjne.
         """
+        
+if '--xyz2plh' in sys.args:        
     def hirvonen(self, X, Y, Z):
+        '''
+        Następujący algorytm przelicza współrzędne z układu ortokartezjańskiego na współrzędne geodezyjne.
+
+        Parameters
+        ----------
+        X : float
+        Y : float
+        Z : float
+
+        Returns: fi, lamda, h 
+        -------
+        None.
+
+        '''
         flh = []
         for X,Y,Z in zip(X,Y,Z):
             p = np.sqrt(X**2 + Y**2)
@@ -220,6 +245,23 @@ if '--plh2zyx' in sys.args:
            Obliczenie macierzy Rneu
        """
    def Rneu(self, fi, lam):
+=======
+        
+if '--rneu' in sys.args:         # XYZ ---> NEU
+   def Rneu(self, fi, lam): #fi, lam--->radians
+       '''
+       Obliczenie macierzy Rneu
+
+       Parameters
+       ----------
+       fi : float
+       lam : float
+
+       Returns: rneu
+       -------
+       None.
+
+       '''
        Rneu = np.array([[-np.sin(fi)*np.cos(lam), -np.sin(lam), np.cos(fi)*np.cos(lam)],
                         [-np.sin(fi)*np.sin(lam),  np.cos(lam), np.cos(fi)*np.sin(lam)],
                         [             np.cos(fi),            0,             np.sin(fi)]])
@@ -230,6 +272,32 @@ if '--plh2zyx' in sys.args:
            Przeliczenie wsp XYZ na neu
        """
    def xyz2neup(self, X, Y, Z, X0, Y0, Z0):
+ 
+if '--xyz2neup' in sys.args:
+   def xyz2neup(self, X, Y, Z, X0, Y0, Z0):
+       '''
+       Przeliczenie wsp XYZ na neu
+       
+       Parameters
+       ----------
+       X : TYPE
+           DESCRIPTION.
+       Y : TYPE
+           DESCRIPTION.
+       Z : TYPE
+           DESCRIPTION.
+       X0 : TYPE
+           DESCRIPTION.
+       Y0 : TYPE
+           DESCRIPTION.
+       Z0 : TYPE
+           DESCRIPTION.
+
+       Returns
+       -------
+       None.
+
+       '''
        neu = []
        p = np.sqrt(X0**2 + Y0**2)
        fi = np.arctan(Z0 / (p*(1 - self.e2)))
@@ -252,12 +320,30 @@ if '--plh2zyx' in sys.args:
        return(neu)
 
 
-
        # TRANSFORMACJA WSP BL ---> 1992
        """
            Algorytm przelicza współrzędne geodezyjne (BL) na współrzędne w układzie 1992 (XY)
        """
    def cale92(self, fi, lam):
+
+       # TRANSFORMACJA WSP BL ---> 1992
+if '--bl292' in sys.args:
+   def cale92(self, fi, lam):
+       '''
+     Algorytm przelicza współrzędne geodezyjne (BL) na współrzędne w układzie 1992 (XY)      
+
+       Parameters
+       ----------
+       fi : TYPE
+           DESCRIPTION.
+       lam : TYPE
+           DESCRIPTION.
+
+       Returns
+       -------
+       None.
+
+       '''
        lam0 = (19*np.pi)/180
        m = 0.9993
        wsp = []
@@ -280,13 +366,32 @@ if '--plh2zyx' in sys.args:
        return(wsp)
            
            
-           
        # TRANSFORMACJA WSP BL ---> 2000
        """
            Następujący algorytm umożliwia przeliczenie współrzędnych geodezyjnych (BLH) na współrzędne w układzie 2000 (XY)
        """
 
    def cale00(self, fi, lam):
+=======
+                     
+       # TRANSFORMACJA WSP BL ---> 2000
+if '--bl200' in sys.args:
+   def cale00(self, fi, lam):
+       '''
+       Następujący algorytm umożliwia przeliczenie współrzędnych geodezyjnych (BLH) na współrzędne w układzie 2000 (XY)
+
+       Parameters
+       ----------
+       fi : TYPE
+           DESCRIPTION.
+       lam : TYPE
+           DESCRIPTION.
+
+       Returns
+       -------
+       None.
+
+       '''
        m=0.999923
        print(fi, lam)
        wsp = []
