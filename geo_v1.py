@@ -268,7 +268,7 @@ def wczytywanie_pliku(plik, funkcja, transformacje):
     elif funkcja == 'bl292':
         fi = np.deg2rad(data[:, 0])
         lam = np.deg2rad(data[:, 1])
-        wsp92 = transformacje.bl292(fi, lam)
+        wsp92 = transformacje.bl92(fi, lam)
         np.savetxt(f"WYNIK_{funkcja}.txt", wsp92, delimiter=";")
 
     elif funkcja == 'bl200':
@@ -292,31 +292,35 @@ if __name__ == "__main__":
 elip = {'WGS84':[6378137.000, 0.00669438002290], 'GRS80':[6378137.000, 0.00669438002290], 'KRASOWSKI':[6378245.000, 0.00669342162296]}
 funkcja = { 'xyz2plh' :  'xyz2plh', 'plh2xyz' : 'plh2xyz', 'xyz2neu' : 'xyz2neu', 'bl292' : 'bl292', 'bl200' : 'bl200'}
 
-try:
-    if args.el == None:
-        args.el = input(str('Podaj nazwe elipsoidy: '))
-    if args.p == None:
-        args.p = input(str('Wklej sciezke do pliku txt z danymi: '))
-    if args.t == None:
-        args.t = input(str('Jaka transformacje wykonac?: '))
+while True:
+    try:
+        if args.el == None:
+            args.el = input(str('Podaj nazwę elipsoidy: '))
+        if args.p == None:
+            args.p = input(str('Wklej scieżkę do pliku z danymi (format musi być w formie txt): '))
+        if args.t == None:
+            args.t = input(str('Jaką transformację program ma wykonać?: '))
 
-    geo = Transformacje(args.el.upper())
-    wczytywanie_pliku(args.p, args.t, geo)
-    
-    print('Plik wynikowy zostal utworzony.')
+        geo = Transformacje(args.el.upper())
+        wczytywanie_pliku(args.p, args.t, geo)
+        
+        print('Plik wynikowy zostal utworzony.')
 
-    wybor = input(str("Jezeli chcesz wykonac kolejna transformacje wpisz TAK jesli chcesz zakonczyc ENTER: ")).upper()
-    args.el = None
-    args.p = None
-    args.t = None
+        wybor = input(str("Jeżeli chcesz wykonać kolejną transformację, wpisz TAK. Wciśnij ENTER aby zakończyć: ")).upper()
+        args.el = None
+        args.p = None
+        args.t = None
 
-except FileNotFoundError:
-    print('Podany plik nie istnieje.')
-except KeyError:
-    print('Zle podana elipsoida lub transformacja.')
-except IndexError:
-    print('Zly format danych w pliku.')
-except ValueError:
-    print('Zly format danych w pliku.')
-finally:
-    print('Koniec programu')
+        if wybor != 'TAK':
+            break
+
+    except FileNotFoundError:
+        print('Nie można znaleźć danego pliku.')
+    except KeyError:
+        print('Źle podana elipsoida lub transformacja.')
+    except IndexError:
+        print('Zły format danych w pliku.')
+    except ValueError:
+        print('Zły format danych w pliku.')
+    finally:
+        print('Koniec bieżącej transformacji')
