@@ -14,14 +14,6 @@ class Transformacje:
         
         return N
     
-    def plh2xyz(self, fi, lam, h):     
-       for fi, lam, h in zip(fi, lam, h):
-            N = self.Npu(fi)
-            x = (N+h)*np.cos(fi)*np.cos(lam)
-            y = (N+h)*np.cos(fi)*np.sin(lam)
-            z = (N*(1-self.ecc2)+h)*np.sin(fi)  
-            return(x, y, z)
-
     def hirvonen(self, X, Y, Z, output='dec_degree'):
         """
         Algorytm Hirvonena - algorytm transformacji współrzędnych ortokartezjańskich (x, y, z)
@@ -44,26 +36,34 @@ class Transformacje:
             dec_degree - decimal degree
             dms - degree, minutes, sec
         """
-        r = sqrt(X ** 2 + Y ** 2)  # promień
-        lat_prev = atan(Z / (r * (1 - self.ecc2)))  # pierwsze przybliilizenie
-        lat = 0
-        while abs(lat_prev - lat) > 0.000001 / 206265:
-            lat_prev = lat
-            N = self.a / sqrt(1 - self.ecc2 * sin(lat_prev) ** 2)
-            h = r / cos(lat_prev) - N
-            lat = atan((Z / r) * (((1 - self.ecc2 * N / (N + h)) ** (-1))))
-        lon = atan(Y / X)
-        N = self.a / sqrt(1 - self.ecc2 * (sin(lat)) ** 2)
-        h = r / cos(lat) - N
-        if output == "dec_degree":
-            return degrees(lat), degrees(lon), h
-        elif output == "dms":
-            lat = self.deg2dms(degrees(lat))
-            lon = self.deg2dms(degrees(lon))
-            return f"{lat[0]:02d}:{lat[1]:02d}:{lat[2]:.2f}", f"{lon[0]:02d}:{lon[1]:02d}:{lon[2]:.2f}", f"{h:.3f}"
-        else:
-            raise NotImplementedError(f"{output} - output format not defined")
+        wyniki = []
+        for X, Y, Z in zip(X, Y, Z):
+            r = sqrt(X ** 2 + Y ** 2)  # promień
+            lat_prev = atan(Z / (r * (1 - self.ecc2)))  # pierwsze przybliilizenie
+            lat = 0
+            while abs(lat_prev - lat) > 0.000001 / 206265:
+                lat_prev = lat
+                N = self.a / sqrt(1 - self.ecc2 * sin(lat_prev) ** 2)
+                h = r / cos(lat_prev) - N
+                lat = atan((Z / r) * (((1 - self.ecc2 * N / (N + h)) ** (-1))))
+            lon = atan(Y / X)
+            N = self.a / sqrt(1 - self.ecc2 * (sin(lat)) ** 2)
+            h = r / cos(lat) - N
+            wyniki.append([np.rad2deg(lat), np.rad2deg(lon), h])
 
+        return wyniki
+    
+    def odwrocony_hirvonen(self, fi, lam, h):
+        wyniki = []
+        for fi, lam, h in zip(fi, lam, h):
+            N = self.Npu(fi)
+            Xk = (N+h)*np.cos(fi)*np.cos(lam)
+            Yk = (N+h)*np.cos(fi)*np.sin(lam)
+            Zk = (N*(1-self.e2)+h)*np.sin(fi)   
+            wyniki.append([Xk,Yk,Zk])
+            
+        return wyniki
+    
    # XYZ ---> NEU
     def Rneu(self, fi, lam): #fi, lam--->radians
        '''
@@ -123,13 +123,14 @@ class Transformacje:
        lam = np.arctan(Y0 / X0)
        
        R_neu = self.Rneu(fi, lam)
-       X_sr = [X - X0, Y - Y0, Z - Z0] 
-       X_rneu = R_neu.T@X_sr
-       neu.append(X_rneu.T)
+       for X, Y, Z in zip(X, Y, Z):
+            X_sr = [X-X0, Y-Y0, Z-Z0] 
+            X_rneu = R_neu.T@X_sr
+            neu.append(X_rneu.T)
            
        return(neu)
 
-    def bl92(self, fi, lam):
+    def bl292(self, fi, lam):
        '''
      Algorytm przelicza współrzędne geodezyjne (BL) na współrzędne w układzie 1992 (XY)      
 
@@ -237,13 +238,11 @@ def wczytywanie_pliku(plik, funkcja, transformacje):
                 if any(char.isalpha() for char in line):
                     continue
                 poprawne_dane.append(line.strip().split(','))
-    # Konwersja poprawnych danych na tablicę numpy
     data = np.array(poprawne_dane, dtype=float)
     if funkcja == 'xyz2plh':
-        X = data[0, 0]
-        Y = data[0, 1]
-        Z = data[0, 2]
-        # to zmienic e starej wersji, bedzie latwiej
+        X = data[:, 0]
+        Y = data[:, 1]
+        Z = data[:, 2]
         blh = transformacje.hirvonen(X, Y, Z)
         np.savetxt(f"WYNIK_{funkcja}.txt", blh, delimiter=";")
 
@@ -251,7 +250,7 @@ def wczytywanie_pliku(plik, funkcja, transformacje):
         fi = np.deg2rad(data[:, 0])
         lam = np.deg2rad(data[:, 1])
         h = data[:, 2]
-        XYZ = transformacje.plh2xyz(fi, lam, h)
+        XYZ = transformacje.odwrocony_hirvonen(fi, lam, h)
         np.savetxt(f"WYNIK_{funkcja}.txt", XYZ, delimiter=";")
 
     elif funkcja == 'xyz2neu':
@@ -264,11 +263,10 @@ def wczytywanie_pliku(plik, funkcja, transformacje):
         neu = transformacje.xyz2neu(X, Y, Z, X0, Y0, Z0)
         np.savetxt(f"WYNIK_{funkcja}.txt", neu, delimiter=";")
 
-    ## tutaj brakuje funkcji w klasie 
     elif funkcja == 'bl292':
         fi = np.deg2rad(data[:, 0])
         lam = np.deg2rad(data[:, 1])
-        wsp92 = transformacje.bl92(fi, lam)
+        wsp92 = transformacje.bl292(fi, lam)
         np.savetxt(f"WYNIK_{funkcja}.txt", wsp92, delimiter=";")
 
     elif funkcja == 'bl200':
@@ -292,35 +290,31 @@ if __name__ == "__main__":
 elip = {'WGS84':[6378137.000, 0.00669438002290], 'GRS80':[6378137.000, 0.00669438002290], 'KRASOWSKI':[6378245.000, 0.00669342162296]}
 funkcja = { 'xyz2plh' :  'xyz2plh', 'plh2xyz' : 'plh2xyz', 'xyz2neu' : 'xyz2neu', 'bl292' : 'bl292', 'bl200' : 'bl200'}
 
-while True:
-    try:
-        if args.el == None:
-            args.el = input(str('Podaj nazwę elipsoidy: '))
-        if args.p == None:
-            args.p = input(str('Wklej scieżkę do pliku z danymi (format musi być w formie txt): '))
-        if args.t == None:
-            args.t = input(str('Jaką transformację program ma wykonać?: '))
+try:
+    if args.el == None:
+        args.el = input(str('Podaj nazwe elipsoidy: '))
+    if args.p == None:
+        args.p = input(str('Wklej sciezke do pliku txt z danymi: '))
+    if args.t == None:
+        args.t = input(str('Jaka transformacje wykonac?: '))
 
-        geo = Transformacje(args.el.upper())
-        wczytywanie_pliku(args.p, args.t, geo)
-        
-        print('Plik wynikowy zostal utworzony.')
+    geo = Transformacje(args.el.upper())
+    wczytywanie_pliku(args.p, args.t, geo)
+    
+    print('Plik wynikowy zostal utworzony.')
 
-        wybor = input(str("Jeżeli chcesz wykonać kolejną transformację, wpisz TAK. Wciśnij ENTER aby zakończyć: ")).upper()
-        args.el = None
-        args.p = None
-        args.t = None
+    wybor = input(str("Jezeli chcesz wykonac kolejna transformacje wpisz TAK jesli chcesz zakonczyc ENTER: ")).upper()
+    args.el = None
+    args.p = None
+    args.t = None
 
-        if wybor != 'TAK':
-            break
-
-    except FileNotFoundError:
-        print('Nie można znaleźć danego pliku.')
-    except KeyError:
-        print('Źle podana elipsoida lub transformacja.')
-    except IndexError:
-        print('Zły format danych w pliku.')
-    except ValueError:
-        print('Zły format danych w pliku.')
-    finally:
-        print('Koniec bieżącej transformacji')
+except FileNotFoundError:
+    print('Podany plik nie istnieje.')
+except KeyError:
+    print('Zle podana elipsoida lub transformacja.')
+except IndexError:
+    print('Zly format danych w pliku.')
+except ValueError:
+    print('Zly format danych w pliku.')
+finally:
+    print('Koniec programu')
